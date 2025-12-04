@@ -27,7 +27,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ history, onSelectResul
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-8">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-start md:items-center mb-8 flex-col md:flex-row gap-4">
         <h2 className="text-3xl font-bold text-slate-900">歷史記錄</h2>
         <div className="space-x-4">
             <Button variant="outline" onClick={onClear} className="text-red-500 hover:bg-red-50 hover:border-red-200">

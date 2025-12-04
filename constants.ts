@@ -73,7 +73,7 @@ export const QUESTIONS: Question[] = [
   { id: 59, optionA: "我喜歡透過競爭來證明自己。", optionB: "我喜歡透過貢獻來證明自己。" },
   { id: 60, optionA: "我總是在尋找更好的方法。", optionB: "我總是在尋找正確的答案。" },
 
-  // 61-70: 深度探索 (New)
+  // 61-70: 深度探索
   { id: 61, optionA: "我傾向於質疑權威。", optionB: "我傾向於尊重體制。" },
   { id: 62, optionA: "我需要很多獨處的時間來充電。", optionB: "我需要很多社交活動來充電。" },
   { id: 63, optionA: "我做事很有彈性，隨時可以改變計畫。", optionB: "我做事很有紀律，不喜歡計畫被打亂。" },

@@ -19,19 +19,35 @@ export default function App() {
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const [history, setHistory] = useState<AssessmentResult[]>([]);
   const [loadingMsg, setLoadingMsg] = useState(MOCK_LOADING_MESSAGES[0]);
+  const [apiKey, setApiKey] = useState<string>('');
+  const [showKeyModal, setShowKeyModal] = useState(false);
   const loadingIntervalRef = useRef<number | null>(null);
 
-  // Load history on mount
+  // Load history and API key on mount
   useEffect(() => {
-    const saved = localStorage.getItem('strengths_history');
-    if (saved) {
+    const savedHistory = localStorage.getItem('strengths_history');
+    if (savedHistory) {
       try {
-        setHistory(JSON.parse(saved));
+        setHistory(JSON.parse(savedHistory));
       } catch (e) {
         console.error("Failed to parse history", e);
       }
     }
+
+    const savedKey = localStorage.getItem('gemini_api_key');
+    if (savedKey) {
+      setApiKey(savedKey);
+    } else {
+      setShowKeyModal(true);
+    }
   }, []);
+
+  const handleSaveKey = (key: string) => {
+    if (!key.trim()) return;
+    setApiKey(key);
+    localStorage.setItem('gemini_api_key', key);
+    setShowKeyModal(false);
+  };
 
   const saveResult = (newResult: AssessmentResult) => {
     const updatedHistory = [newResult, ...history];
@@ -47,6 +63,10 @@ export default function App() {
   }
 
   const startQuiz = () => {
+    if (!apiKey) {
+      setShowKeyModal(true);
+      return;
+    }
     setAnswers([]);
     setCurrentQuestionIndex(0);
     setView(AppView.QUIZ);
@@ -63,7 +83,6 @@ export default function App() {
 
     if (currentQuestionIndex < QUESTIONS.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
-      // Scroll to top for mobile
       window.scrollTo(0, 0);
     } else {
       finishQuiz(updatedAnswers);
@@ -73,7 +92,6 @@ export default function App() {
   const finishQuiz = async (finalAnswers: Answer[]) => {
     setView(AppView.ANALYZING);
     
-    // Cycle loading messages
     let msgIndex = 0;
     loadingIntervalRef.current = window.setInterval(() => {
       msgIndex = (msgIndex + 1) % MOCK_LOADING_MESSAGES.length;
@@ -81,7 +99,7 @@ export default function App() {
     }, 2000);
 
     try {
-      const analysis = await analyzeStrengths(finalAnswers);
+      const analysis = await analyzeStrengths(finalAnswers, apiKey);
       const newResult: AssessmentResult = {
         id: uuidv4(),
         date: new Date().toISOString(),
@@ -92,15 +110,77 @@ export default function App() {
       setView(AppView.RESULT);
     } catch (error) {
       console.error(error);
-      alert("分析過程中發生錯誤，請稍後再試。");
+      alert("分析失敗：請檢查您的 API Key 是否正確，或稍後再試。");
       setView(AppView.LANDING);
     } finally {
       if (loadingIntervalRef.current) clearInterval(loadingIntervalRef.current);
     }
   };
 
+  // API Key Modal Component
+  const KeyModal = () => {
+    const [inputVal, setInputVal] = useState('');
+    
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full animate-fade-in-up">
+          <h3 className="text-xl font-bold text-slate-900 mb-4">請輸入 Gemini API Key</h3>
+          <p className="text-slate-600 mb-6 text-sm">
+            本網站為純前端應用（靜態網頁），為確保安全性，我們不會在伺服器端儲存您的金鑰。
+            <br/><br/>
+            您的 Key 僅會儲存在您瀏覽器的 LocalStorage 中，用於呼叫 Google Gemini 進行分析。
+          </p>
+          <input 
+            type="password" 
+            className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 mb-4 outline-none transition-all"
+            placeholder="請貼上您的 API Key"
+            value={inputVal}
+            onChange={(e) => setInputVal(e.target.value)}
+          />
+          <div className="flex gap-3">
+             <Button 
+              className="w-full" 
+              onClick={() => handleSaveKey(inputVal)}
+              disabled={!inputVal}
+            >
+              確認並儲存
+            </Button>
+            {apiKey && (
+               <Button 
+               variant="ghost"
+               onClick={() => setShowKeyModal(false)}
+             >
+               取消
+             </Button>
+            )}
+          </div>
+          <div className="mt-4 text-center">
+            <a 
+              href="https://aistudio.google.com/app/apikey" 
+              target="_blank" 
+              rel="noreferrer"
+              className="text-xs text-indigo-500 hover:text-indigo-700 underline"
+            >
+              沒有 Key？點此前往 Google AI Studio 申請
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderLanding = () => (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-br from-slate-50 to-indigo-50">
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-br from-slate-50 to-indigo-50 relative">
+      <div className="absolute top-4 right-4">
+        <button 
+          onClick={() => setShowKeyModal(true)}
+          className="text-xs text-slate-400 hover:text-indigo-600 flex items-center gap-1 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+          設定 API Key
+        </button>
+      </div>
+
       <div className="max-w-2xl w-full text-center animate-fade-in-up">
         <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-xl mx-auto mb-8 text-indigo-600">
            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -141,7 +221,6 @@ export default function App() {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center py-8 px-4">
         <div className="w-full max-w-3xl">
-          {/* Header & Progress */}
           <div className="mb-8">
             <div className="flex justify-between text-sm font-medium text-slate-500 mb-2">
               <span>問題 {currentQuestionIndex + 1} / {QUESTIONS.length}</span>
@@ -155,7 +234,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Question Card */}
           <div className="bg-white rounded-3xl shadow-xl p-8 md:p-12 animate-fade-in relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
             
@@ -219,7 +297,6 @@ export default function App() {
     return (
       <div className="min-h-screen bg-slate-50 py-12 px-4">
         <div className="max-w-5xl mx-auto">
-          {/* Header */}
           <div className="text-center mb-12">
             <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">您的天賦優勢報告</h1>
             <p className="text-slate-600 max-w-2xl mx-auto">
@@ -227,7 +304,6 @@ export default function App() {
             </p>
           </div>
 
-          {/* Top Section: Chart & Summary */}
           <div className="grid lg:grid-cols-2 gap-8 mb-12">
             <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8 flex flex-col">
               <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center">
@@ -252,7 +328,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Strengths List */}
           <div className="mb-12">
             <h2 className="text-2xl font-bold text-slate-900 text-center mb-8">Top 5 核心優勢</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -278,7 +353,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex justify-center gap-4 border-t border-slate-200 pt-8">
             <Button size="lg" onClick={() => setView(AppView.LANDING)}>
               返回首頁
@@ -294,6 +368,7 @@ export default function App() {
 
   return (
     <div>
+      {showKeyModal && <KeyModal />}
       {view === AppView.LANDING && renderLanding()}
       {view === AppView.QUIZ && renderQuiz()}
       {view === AppView.ANALYZING && renderAnalyzing()}

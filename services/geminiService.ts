@@ -1,9 +1,13 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Answer, AssessmentResult, DomainType } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+export const analyzeStrengths = async (answers: Answer[], apiKey: string): Promise<Omit<AssessmentResult, 'id' | 'date'>> => {
+  if (!apiKey) {
+      throw new Error("API Key is required");
+  }
+  
+  const ai = new GoogleGenAI({ apiKey: apiKey });
 
-export const analyzeStrengths = async (answers: Answer[]): Promise<Omit<AssessmentResult, 'id' | 'date'>> => {
   const answerSummary = answers.map(a => `Q${a.questionId}: ${a.selectedText}`).join('\n');
 
   const prompt = `
