@@ -13,7 +13,7 @@ export const ResultChart: React.FC<ResultChartProps> = ({ distribution }) => {
   }));
 
   return (
-    <div className="w-full h-80">
+    <div className="w-full h-80 flex items-center justify-center">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
@@ -31,7 +31,7 @@ export const ResultChart: React.FC<ResultChartProps> = ({ distribution }) => {
           </Pie>
           <Tooltip 
             formatter={(value: number) => [`${value}%`, '佔比']}
-            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+            contentStyle={{ borderRadius: '0.5rem', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
           />
           <Legend 
              verticalAlign="bottom" 
